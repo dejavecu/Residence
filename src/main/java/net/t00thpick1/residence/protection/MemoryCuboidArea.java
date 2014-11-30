@@ -5,8 +5,11 @@ import net.t00thpick1.residence.protection.MemoryResidenceManager.ChunkRef;
 
 import org.bukkit.Location;
 import org.bukkit.World;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MemoryCuboidArea implements CuboidArea {
     protected World world;
@@ -120,15 +123,15 @@ public class MemoryCuboidArea implements CuboidArea {
     }
 
     public int getXSize() {
-        return (highX - lowX);
+        return (highX - lowX) + 1;
     }
 
     public int getYSize() {
-        return (highY - lowY);
+        return (highY - lowY) + 1;
     }
 
     public int getZSize() {
-        return (highZ - lowZ);
+        return (highZ - lowZ) + 1;
     }
 
     public Location getHighLocation() {
@@ -144,7 +147,7 @@ public class MemoryCuboidArea implements CuboidArea {
     }
 
     public Location getCenter() {
-        return new Location(world, (highX + getLowX()) / 2, (highY + getLowY()) / 2, (highZ + lowZ) / 2);
+        return new Location(world, (highX + lowX) / 2, (highY + lowY) / 2, (highZ + lowZ) / 2);
     }
 
     public List<ChunkRef> getChunks() {
@@ -198,5 +201,20 @@ public class MemoryCuboidArea implements CuboidArea {
             return new MemoryCuboidArea(loc1, loc2);
         }
 
+    }
+
+    @Override
+    public Map<String, Double> getVariables() {
+        Map<String, Double> variables = new HashMap<String, Double>();
+        variables.put("LowX", (double) getLowX());
+        variables.put("LowY", (double) getLowY());
+        variables.put("LowZ", (double) getLowZ());
+        variables.put("HighX", (double) getHighX());
+        variables.put("HighY", (double) getHighY());
+        variables.put("HighZ", (double) getHighZ());
+        variables.put("XSize", (double) getXSize());
+        variables.put("YSize", (double) getYSize());
+        variables.put("ZSize", (double) getZSize());
+        return variables;
     }
 }

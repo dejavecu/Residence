@@ -39,10 +39,11 @@ public class InteractListener implements Listener {
         }
         if (player.getItemInHand().getType() == ConfigManager.getInstance().getSelectionToolType()) {
             select(player, block, event);
-            return;
         }
         if (player.getItemInHand().getType() == ConfigManager.getInstance().getInfoToolType()) {
             info(player, block, event);
+        }
+        if (event.isCancelled()) {
             return;
         }
         interact(player, block, event);
@@ -173,7 +174,6 @@ public class InteractListener implements Listener {
         }
         if (!ResidenceAPI.getPermissionsAreaByLocation(block.getLocation()).allowAction(player.getName(), FlagManager.PRESSUREPLATE)) {
             event.setCancelled(true);
-            player.sendMessage(LocaleLoader.getString("Flags.Messages.FlagDeny", LocaleLoader.getString("Flags.Messages.UseFlagDeny", FlagManager.PRESSUREPLATE.getName())));
         }
     }
 

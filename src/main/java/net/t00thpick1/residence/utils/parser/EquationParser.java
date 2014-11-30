@@ -6,7 +6,7 @@ import java.util.Map;
 
 public abstract class EquationParser {
     public static Equation parse(String string) {
-        LinkedList<Character> stack = new LinkedList<Character>();
+        LinkedList<String> stack = new LinkedList<String>();
         LinkedList<Equation> output = new LinkedList<Equation>();
         StringBuilder tokenBuilder = new StringBuilder();
         for (char c : string.toCharArray()) {
@@ -25,11 +25,11 @@ public abstract class EquationParser {
                 int prec = getPrecidence(c);
                 if (stack.size() > 0) {
                     while (true) {
-                        int precStack = getPrecidence(stack.peekLast());
+                        int precStack = getPrecidence(stack.peekLast().charAt(0));
                         if (prec <= precStack) {
                             Equation b = output.pollLast();
                             Equation a = output.pollLast();
-                            switch (stack.pollLast()) {
+                            switch (stack.pollLast().charAt(0)) {
                                 case '*':
                                     output.add(new MultiplicationEquation(a, b));
                                     break;
@@ -52,27 +52,27 @@ public abstract class EquationParser {
                         }
                     }
                 }
-                stack.add(c);
+                stack.add(String.valueOf(c));
             } else if (c == '(') {
-                if (isTrig(tokenBuilder.toString())) {
-                    stack.add(tokenBuilder.charAt(0));
+                if (isSpecial(tokenBuilder.toString())) {
+                    stack.add(tokenBuilder.toString());
                     tokenBuilder = new StringBuilder();
                 } else {
                     if (tokenBuilder.length() > 0) {
                         throw new IllegalStateException("Invalid token: " + tokenBuilder.toString());
                     }
-                    stack.add(c);
+                    stack.add(String.valueOf(c));
                 }
             } else if (c == ')') {
                 if (tokenBuilder.length() > 0) {
                     handleToken(stack, output, tokenBuilder.toString());
                     tokenBuilder = new StringBuilder();
                 }
-                char last = stack.peekLast();
-                while (last != '(' && last != 'c' && last != 's' && last != 't') {
+                String last = stack.peekLast();
+                while (!isSpecial(last) && !last.equalsIgnoreCase("(")) {
                     Equation b = output.pollLast();
                     Equation a = output.pollLast();
-                    switch (stack.pollLast()) {
+                    switch (stack.pollLast().charAt(0)) {
                         case '*':
                             output.add(new MultiplicationEquation(a, b));
                             break;
@@ -91,11 +91,11 @@ public abstract class EquationParser {
                     }
                     last = stack.peekLast();
                 }
-                char b = stack.pollLast();
-                if (b == '(') {
+                String b = stack.pollLast();
+                if (b.charAt(0) == '(') {
                     continue;
                 } else {
-                    switch (b) {
+                    switch (b.charAt(0)) {
                         case 's':
                             output.add(new SineEquation(output.pollLast()));
                             break;
@@ -105,16 +105,26 @@ public abstract class EquationParser {
                         case 't':
                             output.add(new TangentEquation(output.pollLast()));
                             break;
+                        case 'l':
+                            if (b.toLowerCase().charAt(1) == 'o') {
+                                output.add(new LogEquation(output.pollLast()));
+                            } else {
+                                output.add(new NaturalLogEquation(output.pollLast()));
+                            }
+                            break;
                     }
                 }
             } else {
                 tokenBuilder.append(c);
             }
         }
+        if (tokenBuilder.length() > 0) {
+            handleToken(stack, output, tokenBuilder.toString());
+        }
         while (stack.peekLast() != null) {
             Equation b = output.pollLast();
             Equation a = output.pollLast();
-            switch (stack.pollLast()) {
+            switch (stack.pollLast().charAt(0)) {
                 case '*':
                     output.add(new MultiplicationEquation(a, b));
                     break;
@@ -135,8 +145,8 @@ public abstract class EquationParser {
         return output.pollLast();
     }
 
-    private static void handleToken(LinkedList<Character> stack, LinkedList<Equation> output, String token) {
-        if (isTrig(token)) {
+    private static void handleToken(LinkedList<String> stack, LinkedList<Equation> output, String token) {
+        if (isSpecial(token)) {
             switch (token.charAt(0)) {
                 case 's':
                     output.add(new SineEquation(output.pollLast()));
@@ -146,6 +156,13 @@ public abstract class EquationParser {
                     return;
                 case 't':
                     output.add(new TangentEquation(output.pollLast()));
+                    return;
+                case 'l':
+                    if (token.toLowerCase().charAt(1) == 'o') {
+                        output.add(new LogEquation(output.pollLast()));
+                    } else {
+                        output.add(new NaturalLogEquation(output.pollLast()));
+                    }
                     return;
             }
         } else if (token.equalsIgnoreCase("pi")) {
@@ -165,8 +182,8 @@ public abstract class EquationParser {
         return token.matches("^*[0-9\\.]+$");
     }
 
-    private static boolean isTrig(String token) {
-        return token.equalsIgnoreCase("sin") || token.equalsIgnoreCase("cos") || token.equalsIgnoreCase("tan");
+    private static boolean isSpecial(String token) {
+        return token.equalsIgnoreCase("sin") || token.equalsIgnoreCase("cos") || token.equalsIgnoreCase("tan") || token.equalsIgnoreCase("ln") || token.equalsIgnoreCase("log");
     }
 
     private static int getPrecidence(char c) {
@@ -193,7 +210,7 @@ public abstract class EquationParser {
         System.out.println(test.calculate(null));
         Map<String, Double> vars = new HashMap<String, Double>();
         vars.put("X", 12D);
-        String test3 = "1 + sin(X) + (4/2)";
+        String test3 = "1 + sin(X) + ln(4/2)";
         test = parse(test3);
         System.out.println(test.toString());
         System.out.println(test.calculate(vars));

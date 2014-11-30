@@ -1,5 +1,6 @@
 package net.t00thpick1.residence;
 
+import net.t00thpick1.residence.api.Group;
 import net.t00thpick1.residence.api.ResidenceAPI;
 import net.t00thpick1.residence.api.ResidenceManager;
 import net.t00thpick1.residence.api.areas.CuboidArea;
@@ -7,7 +8,6 @@ import net.t00thpick1.residence.api.areas.ResidenceArea;
 import net.t00thpick1.residence.api.flags.Flag;
 import net.t00thpick1.residence.api.flags.FlagManager;
 import net.t00thpick1.residence.locale.LocaleLoader;
-import net.t00thpick1.residence.protection.yaml.YAMLGroupManager;
 import net.t00thpick1.residence.selection.SelectionManager;
 import net.t00thpick1.residence.utils.Utilities;
 
@@ -404,8 +404,7 @@ public class ResidenceCommandExecutor implements CommandExecutor {
                 if (index < flags.length) {
                     Flag flag = flags[index];
                     String description = flag.getDescription();
-                    player.sendMessage(LocaleLoader.getString("Commands.Flags.Flag", flag.getName()));
-                    player.sendMessage(LocaleLoader.getString("Commands.Flags.FlagType", flag.getType()));
+                    player.sendMessage(LocaleLoader.getString("Commands.Flags.Flag", flag.getName(), flag.getType()));
                     if (description != null) {
                         player.sendMessage(LocaleLoader.getString("Commands.Flags.Description", description));
                     }
@@ -492,6 +491,7 @@ public class ResidenceCommandExecutor implements CommandExecutor {
                 return true;
             }
             res.setTeleportLocation(player.getLocation());
+            player.sendMessage(LocaleLoader.getString("Commands.TPSet.Success"));
             return true;
         }
         if (cmd.equalsIgnoreCase("tp")) {
@@ -722,63 +722,64 @@ public class ResidenceCommandExecutor implements CommandExecutor {
         if (ConfigManager.getInstance().isAutoVert()) {
             selectionManager.vert(player);
         }
+        Group group = ResidenceAPI.getGroup(player);
         if (!resadmin) {
-            if (newArea.getXSize() > YAMLGroupManager.getMaxWidth(player)) {
-                player.sendMessage(LocaleLoader.getString("Commands.Create.TooWide", YAMLGroupManager.getMaxWidth(player)));
+            if (newArea.getXSize() > group.getMaxWidth()) {
+                player.sendMessage(LocaleLoader.getString("Commands.Create.TooWide", group.getMaxWidth()));
                 return true;
             }
-            if (newArea.getXSize() < YAMLGroupManager.getMinWidth(player)) {
-                player.sendMessage(LocaleLoader.getString("Commands.Create.TooNarrow", YAMLGroupManager.getMinWidth(player)));
+            if (newArea.getXSize() < group.getMinWidth()) {
+                player.sendMessage(LocaleLoader.getString("Commands.Create.TooNarrow", group.getMinWidth()));
                 return true;
             }
-            if (newArea.getZSize() > YAMLGroupManager.getMaxLength(player)) {
-                player.sendMessage(LocaleLoader.getString("Commands.Create.TooLong", YAMLGroupManager.getMaxLength(player)));
+            if (newArea.getZSize() > group.getMaxLength()) {
+                player.sendMessage(LocaleLoader.getString("Commands.Create.TooLong", group.getMaxLength()));
                 return true;
             }
-            if (newArea.getZSize() < YAMLGroupManager.getMinLength(player)) {
-                player.sendMessage(LocaleLoader.getString("Commands.Create.TooSkinny", YAMLGroupManager.getMinLength(player)));
+            if (newArea.getZSize() < group.getMinLength()) {
+                player.sendMessage(LocaleLoader.getString("Commands.Create.TooSkinny", group.getMinLength()));
                 return true;
             }
-            if (newArea.getYSize() > YAMLGroupManager.getMaxHeight(player)) {
-                player.sendMessage(LocaleLoader.getString("Commands.Create.TooTall", YAMLGroupManager.getMaxHeight(player)));
+            if (newArea.getYSize() > group.getMaxHeight()) {
+                player.sendMessage(LocaleLoader.getString("Commands.Create.TooTall", group.getMaxHeight()));
                 return true;
             }
-            if (newArea.getYSize() < YAMLGroupManager.getMinHeight(player)) {
-                player.sendMessage(LocaleLoader.getString("Commands.Create.TooShort", YAMLGroupManager.getMinHeight(player)));
+            if (newArea.getYSize() < group.getMinHeight()) {
+                player.sendMessage(LocaleLoader.getString("Commands.Create.TooShort", group.getMinHeight()));
                 return true;
             }
-            if (newArea.getLowLocation().getBlockY() < YAMLGroupManager.getMinY(player)) {
-                player.sendMessage(LocaleLoader.getString("Commands.Create.TooLow", YAMLGroupManager.getMinY(player)));
+            if (newArea.getLowLocation().getBlockY() < group.getMinY()) {
+                player.sendMessage(LocaleLoader.getString("Commands.Create.TooLow", group.getMinY()));
                 return true;
             }
-            if (newArea.getHighLocation().getBlockY() > YAMLGroupManager.getMaxY(player)) {
-                player.sendMessage(LocaleLoader.getString("Commands.Create.TooHigh", YAMLGroupManager.getMaxY(player)));
+            if (newArea.getHighLocation().getBlockY() > group.getMaxY()) {
+                player.sendMessage(LocaleLoader.getString("Commands.Create.TooHigh", group.getMaxY()));
                 return true;
             }
-        }
-        if (!resadmin && YAMLGroupManager.getMaxResidences(player.getName()) <= rmanager.getOwnedZoneCount(player.getName())) {
-            player.sendMessage(LocaleLoader.getString("Commands.Create.TooManyResidences", YAMLGroupManager.getMaxResidences(player.getName())));
-            return true;
+            if (group.getMaxResidences() <= rmanager.getOwnedZoneCount(player.getName())) {
+                player.sendMessage(LocaleLoader.getString("Commands.Create.TooManyResidences", group.getMaxResidences()));
+                return true;
+            }
         }
         if (!Utilities.validName(args[1])) {
             player.sendMessage(LocaleLoader.getString("Commands.Create.InvalidName", args[1]));
             return true;
         }
-        if (ConfigManager.getInstance().isEconomy()) {
-            double cost = (double) newArea.getSize() * YAMLGroupManager.getCostPerBlock(player);
-            if (cost != 0) {
-                if (!Residence.getInstance().getEconomy().has(player.getName(), cost)) {
-                    player.sendMessage(LocaleLoader.getString("Commands.Create.NotEnoughMoneyz", cost));
-                    return true;
-                }
-                player.sendMessage(LocaleLoader.getString("Commands.Create.Charged", cost));
-                Residence.getInstance().getEconomy().withdrawPlayer(player.getName(), cost);
-            }
-        }
         ResidenceArea collide = rmanager.getCollision(newArea);
         if (collide != null) {
             player.sendMessage(LocaleLoader.getString("Commands.Create.Collide", collide.getName()));
             return true;
+        }
+        if (ConfigManager.getInstance().isEconomy() && !resadmin) {
+            double cost = group.getCostEquation().calculate(newArea.getVariables());
+            if (cost != 0) {
+                if (!Residence.getInstance().getEconomy().has(player.getName(), cost)) {
+                    player.sendMessage(LocaleLoader.getString("Commands.Create.NotEnoughMoneyz", Residence.getInstance().getEconomy().format(cost)));
+                    return true;
+                }
+                player.sendMessage(LocaleLoader.getString("Commands.Create.Charged", Residence.getInstance().getEconomy().format(cost)));
+                Residence.getInstance().getEconomy().withdrawPlayer(player.getName(), cost);
+            }
         }
         if (rmanager.createResidence(args[1], player.getName(), newArea) != null) {
             player.sendMessage(LocaleLoader.getString("Commands.Create.Success", args[1]));
@@ -789,15 +790,16 @@ public class ResidenceCommandExecutor implements CommandExecutor {
     }
 
     private boolean commandResLimits(String[] args, boolean resadmin, Player player) {
-        player.sendMessage(LocaleLoader.getString("Commands.Limits.Residences", YAMLGroupManager.getMaxResidences(player.getName())));
-        player.sendMessage(LocaleLoader.getString("Commands.Limits.Wide", YAMLGroupManager.getMaxWidth(player)));
-        player.sendMessage(LocaleLoader.getString("Commands.Limits.Narrow", YAMLGroupManager.getMinWidth(player)));
-        player.sendMessage(LocaleLoader.getString("Commands.Limits.Long", YAMLGroupManager.getMaxLength(player)));
-        player.sendMessage(LocaleLoader.getString("Commands.Limits.Skinny", YAMLGroupManager.getMinLength(player)));
-        player.sendMessage(LocaleLoader.getString("Commands.Limits.Tall", YAMLGroupManager.getMaxHeight(player)));
-        player.sendMessage(LocaleLoader.getString("Commands.Limits.Short", YAMLGroupManager.getMinHeight(player)));
-        player.sendMessage(LocaleLoader.getString("Commands.Limits.Low", YAMLGroupManager.getMinY(player)));
-        player.sendMessage(LocaleLoader.getString("Commands.Limits.High", YAMLGroupManager.getMaxY(player)));
+        Group group = ResidenceAPI.getGroup(player);
+        player.sendMessage(LocaleLoader.getString("Commands.Limits.Residences", group.getMaxResidences()));
+        player.sendMessage(LocaleLoader.getString("Commands.Limits.Wide", group.getMaxWidth()));
+        player.sendMessage(LocaleLoader.getString("Commands.Limits.Narrow", group.getMinWidth()));
+        player.sendMessage(LocaleLoader.getString("Commands.Limits.Long", group.getMaxLength()));
+        player.sendMessage(LocaleLoader.getString("Commands.Limits.Skinny", group.getMinLength()));
+        player.sendMessage(LocaleLoader.getString("Commands.Limits.Tall", group.getMaxHeight()));
+        player.sendMessage(LocaleLoader.getString("Commands.Limits.Short", group.getMinHeight()));
+        player.sendMessage(LocaleLoader.getString("Commands.Limits.Low", group.getMinY()));
+        player.sendMessage(LocaleLoader.getString("Commands.Limits.High", group.getMaxY()));
         return true;
     }
 
@@ -959,7 +961,6 @@ public class ResidenceCommandExecutor implements CommandExecutor {
             return true;
         }
         if (!resadmin
-                && !player.hasPermission("residence.flags.all")
                 && !player.hasPermission("residence.flags." + flag.getName())) {
             player.sendMessage(LocaleLoader.getString("Commands.Generic.NoPermission"));
             return true;
@@ -1043,7 +1044,6 @@ public class ResidenceCommandExecutor implements CommandExecutor {
                 return true;
             }
             if (!resadmin
-                    && !player.hasPermission("residence.flags.all")
                     && !player.hasPermission("residence.flags." + flag.getName())) {
                 player.sendMessage(LocaleLoader.getString("Commands.Generic.NoPermission"));
                 return true;
@@ -1099,7 +1099,6 @@ public class ResidenceCommandExecutor implements CommandExecutor {
             return true;
         }
         if (!resadmin
-                && !player.hasPermission("residence.flags.all")
                 && !player.hasPermission("residence.flags." + flag.getName())) {
             player.sendMessage(LocaleLoader.getString("Commands.Generic.NoPermission"));
             return true;
@@ -1517,7 +1516,7 @@ public class ResidenceCommandExecutor implements CommandExecutor {
                     return true;
                 }
             }
-            int page = 0;
+            int page = 1;
             if (args.length == 3) {
                 try {
                     page = Integer.parseInt(args[2]);
@@ -1528,6 +1527,9 @@ public class ResidenceCommandExecutor implements CommandExecutor {
                     player.sendMessage(LocaleLoader.getString("Commands.Generic.InvalidNumber", args[2]));
                     return true;
                 }
+            }
+            if (page < 1) {
+                page = 1;
             }
             ResidenceArea[] subzones = res.getSubzoneList().toArray(new ResidenceArea[0]);
             player.sendMessage(LocaleLoader.getString("Commands.Sublist.List", res.getName(), page));
